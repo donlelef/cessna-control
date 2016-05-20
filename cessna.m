@@ -2,7 +2,6 @@
 clear all;
 close all;
 clc;
-optimset('LargeScale', 'off');
 
 %% Model definition
 A = [-1.2822, 0, 0.98, 0; 0, 0, 1, 0; -5.4293, 0, -1.8366, 0; -128.2, 128.2, 0, 0];
@@ -49,6 +48,7 @@ open('LQR_discrete');
 %pause;
 
 %% 3. MPC controller without active constrints
+close all;
 set_point = [0; 0; 0; 0];
 N = 100;
 x0 = [0; 0; 0; 10];

@@ -2,6 +2,9 @@ function [ u ] = MPC_controller( A, B, Q, R, S, N, umin, umax, x )
 %MPC_CONTROLLER return the input as computed by an mpc aontroller
 %   Detailed explanation goes here
 
+options = optimset('quadprog');
+options = optimset(options, 'LargeScale', 'off', 'Display' , 'off');
+
 Ac = [];
 for i = 1:N
     Ac = [Ac;A^i];
@@ -26,10 +29,11 @@ Qc = blkdiag(Qc, S);
 
 Rc = kron(eye(N), R);
 
-H = Bc' * Qc' * Bc + Rc;
+H = Bc' * Qc * Bc + Rc;
 f = 2 * x' * Ac' * Qc * Bc;
 umin_constr = umin * ones(N, 1);
 umax_constr = umax * ones(N, 1);
-u = quadprog(H, f, [], [], [], [], umin_constr, umax_constr);
+
+u = quadprog(H, f, [], [], [], [], umin_constr, umax_constr, [], options);
 u = u(1);
 end
