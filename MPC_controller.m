@@ -28,10 +28,8 @@ Rc = kron(eye(N), R);
 
 H = Bc' * Qc' * Bc + Rc;
 f = 2 * x' * Ac' * Qc * Bc;
-A_constr = zeros(1, N);
-b_constr = 0;
 umin_constr = umin * ones(N, 1);
 umax_constr = umax * ones(N, 1);
-u = quadprog(H, f, A_constr, b_constr, A_constr, b_constr, umin_constr, umax_constr);
+u = quadprog(H, f, [], [], [], [], umin_constr, umax_constr);
 u = u(1);
 end

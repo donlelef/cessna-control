@@ -2,6 +2,7 @@
 clear all;
 close all;
 clc;
+optimset('LargeScale', 'off');
 
 %% Model definition
 A = [-1.2822, 0, 0.98, 0; 0, 0, 1, 0; -5.4293, 0, -1.8366, 0; -128.2, 128.2, 0, 0];
@@ -23,9 +24,8 @@ x2_max = 0.349;
 %% 1. LQ controller
 Q = eye(4);
 R = 1;
-Kdlqr = dlqr(sys_discrete.a, sys_discrete.b, Q, R);
+[Kdlqr, S, closeLoopEigs] = dlqr(sys_discrete.a, sys_discrete.b, Q, R);
 closeLoopMatrix = sys_discrete.a - sys_discrete.b * Kdlqr;
-closeLoopEigs = eig(closeLoopMatrix);
 display(['Closed loop matrix A-BK eignevalues = ' num2str(closeLoopEigs')]);
 if(abs(closeLoopEigs) < 1)
     display('Eigenvalues inside unit circle -> closed loop system is AS.')
@@ -48,15 +48,15 @@ sim('LQR_discrete');
 open('LQR_discrete');
 %pause;
 
-%% MPC controller without active constrints
+%% 3. MPC controller without active constrints
 set_point = [0; 0; 0; 0];
-N = 3;
+N = 100;
 x0 = [0; 0; 0; 10];
 u_min_simulink = -inf;
 u_max_simulink = inf;
-u_mpc = MPC_controller(sys_discrete.a, sys_discrete.b, Q, R, Q, N, u_min_simulink, u_max_simulink, x0);
+u_mpc = MPC_controller(sys_discrete.a, sys_discrete.b, Q, R, S, N, u_min_simulink, u_max_simulink, x0);
 T_sim = 10;
-sim('LQR_vs_MPC');
-open('LQR_vs_MPC');
+sim('MPC_vs_LQR');
+open('MPC_vs_LQR');
 % pause;
 
