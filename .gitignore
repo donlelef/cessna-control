@@ -1,0 +1,4 @@
+# Simulink compilation files
+
+slprj/
+MPC_with_block_sfun.mexa64
