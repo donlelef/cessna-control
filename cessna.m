@@ -47,7 +47,7 @@ sim('LQR_discrete');
 open('LQR_discrete');
 %pause;
 
-%% 3. MPC controller without active constrints
+%% 3. MPC controller without active constraints
 close all;
 set_point = [0; 0; 0; 0];
 N = 100;
