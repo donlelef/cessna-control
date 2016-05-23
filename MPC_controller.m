@@ -36,7 +36,7 @@ umax_constr = umax * ones(N, 1);
 
 [A_leq, b_leq] = build_inequality(Ac, Bc, N, xmin, xmax, x);
 
-[u, ~, flag] = quadprog(H, f, A_leq, b_leq, [], [], umin_constr, umax_constr, [], options);
+u = quadprog(H, f, A_leq, b_leq, [], [], umin_constr, umax_constr, [], options);
 u = u(1);
 end
 
