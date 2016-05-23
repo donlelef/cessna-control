@@ -19,6 +19,10 @@ u_slew_rate_min = -0.524;
 u_slew_rate_max = 0.524;
 x2_min = -0.349; % Pitch angle
 x2_max = 0.349;
+set_point = [0; 0; 0; 0];
+T_sim = 10;
+x0 = [0; 0; 0; 10];
+N = 10;
 
 %% 1. LQ controller
 Q = eye(4);
@@ -31,32 +35,61 @@ if(abs(closeLoopEigs) < 1)
 end
 
 %% 2. Controller tuning with simulink model
-set_point = [0; 0; 0; 0];
-x0 = [0; 0; 0; 10];
 u_min_simulink = -inf;
 u_max_simulink = inf;
-T_sim = 5;
-sim('LQR_discrete');
-open('LQR_discrete');
-%pause;
-
-u_min_simulink = u_min;
-u_max_simulink = u_max;
-T_sim = 10;
+Kdlqr_simulink = Kdlqr;
 sim('LQR_discrete');
 open('LQR_discrete');
 %pause;
 
 %% 3. MPC controller without active constraints
 close all;
-set_point = [0; 0; 0; 0];
-N = 100;
-x0 = [0; 0; 0; 10];
+Q_simulink = Q;
+S_simulink = S;
 u_min_simulink = -inf;
 u_max_simulink = inf;
-u_mpc = MPC_controller(sys_discrete.a, sys_discrete.b, Q, R, S, N, u_min_simulink, u_max_simulink, x0);
-T_sim = 10;
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
 % pause;
 
+%% 3. MPC controller without active constraints
+close all;
+u_min_simulink = -inf;
+u_max_simulink = inf;
+sim('MPC_vs_LQR');
+open('MPC_vs_LQR');
+% pause;
+
+%% 4. MPC controller with constraint on input variable
+close all;
+u_min_simulink = u_min;
+u_max_simulink = u_max;
+sim('MPC_vs_LQR');
+open('MPC_vs_LQR');
+% pause;
+
+%% 4a. MPC more aggressive (Q = 100I, S recomputed)
+close all;
+Q_aggressive = 100 .* Q;
+[Kdlqr_aggressive, S_aggressive, ~] = dlqr(sys_discrete.a, sys_discrete.b, Q_aggressive, R);
+Q_simulink = Q_aggressive;
+S_simulink = S_aggressive;
+Kdlqr_simulink = Kdlqr_aggressive;
+sim('MPC_vs_LQR');
+open('MPC_vs_LQR');
+% pause;
+
+%% 4b. MPC more aggressive (Q = 100 I, S computed with Q = I)
+close all;
+S_simulink = S;
+sim('MPC_vs_LQR');
+open('MPC_vs_LQR');
+% pause;
+
+%% 4c. MPC more aggressive (Q = I, S computed with Q = 100 I)
+close all;
+Q_simulink = Q;
+S_simulink = S_aggressive;
+sim('MPC_vs_LQR');
+open('MPC_vs_LQR');
+% pause;
