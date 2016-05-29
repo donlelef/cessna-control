@@ -13,21 +13,20 @@ Ts = 0.1;
 sys = ss(A, B, C, D);
 sys_discrete = c2d(sys, Ts);
 
+set_point = [0; 0; 0; 0];
+T_sim = 10;
+x0 = [0; 0; 0; 10];
+N = 10;
+
 %% Parameters
-x_min_simulink =  [-inf, -inf, -inf, -inf]';
-x_max_simulink =  [+inf, +inf, +inf, +inf]';
 u_min = -0.262;
 u_max= 0.262;
 u_slew_rate_min = -0.524;
 u_slew_rate_max = 0.524;
 x2_min = -0.349; % Pitch angle
 x2_max = 0.349;
-overshot_fraction_h = 1e-10;
-overshot_fraction_l = 1e-10;
-set_point = [0; 0; 0; 0];
-T_sim = 10;
-x0 = [0; 0; 0; 10];
-N = 10;
+overshot_fraction_h = 1e-1;
+overshot_fraction_l = 1e-1;
 
 %% 1. LQ controller
 Q = eye(4);
@@ -49,18 +48,34 @@ open('LQR_discrete');
 
 %% 3. MPC controller without active constraints
 close all;
-Q_simulink = Q;
-S_simulink = S;
-u_min_simulink = -inf;
-u_max_simulink = inf;
+display('Starting simulation without constraints.')
+Q_simulink = Q
+S_simulink = S
+u_min_simulink = -inf
+u_max_simulink = inf
+x_min_simulink =  [-inf, -inf, -inf, -inf]'
+x_max_simulink =  [+inf, +inf, +inf, +inf]'
+uslopemin_simulink = -inf
+uslopemax_simulink = inf
+Kdlqr_simulink = Kdlqr
+
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
 % pause;
 
 %% 4. MPC controller with constraint on input variable
 close all;
-u_min_simulink = u_min;
-u_max_simulink = u_max;
+display('Starting simulation with constraints on input variable.')
+Q_simulink = Q
+S_simulink = S
+u_min_simulink = u_min
+u_max_simulink = u_max
+x_min_simulink =  [-inf, -inf, -inf, -inf]'
+x_max_simulink =  [+inf, +inf, +inf, +inf]'
+uslopemin_simulink = -inf
+uslopemax_simulink = inf
+Kdlqr_simulink = Kdlqr
+
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
 % pause;
@@ -72,6 +87,7 @@ Q_aggressive = 100 .* Q;
 Q_simulink = Q_aggressive;
 S_simulink = S_aggressive;
 Kdlqr_simulink = Kdlqr_aggressive;
+
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
 % pause;
@@ -79,6 +95,7 @@ open('MPC_vs_LQR');
 %% 4b. MPC more aggressive (Q = 100 I, S computed with Q = I)
 close all;
 S_simulink = S;
+
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
 % pause;
@@ -87,24 +104,57 @@ open('MPC_vs_LQR');
 close all;
 Q_simulink = Q;
 S_simulink = S_aggressive;
+
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
 % pause;
 
 %% 5. Addition of pitch angle constraint (state x2)
 close all;
-S_simulink = S;
-x_min_simulink(2) = x2_min;
-x_max_simulink(2) = x2_max;
-Kdlqr_simulink = Kdlqr;
+display('Starting simulation with constraints on input variable and pitch angle (x2).')
+Q_simulink = Q
+S_simulink = S
+u_min_simulink = u_min
+u_max_simulink = u_max
+x_min_simulink =  [-inf, x2_min, -inf, -inf]'
+x_max_simulink =  [+inf, x2_max, +inf, +inf]'
+uslopemin_simulink = -inf
+uslopemax_simulink = inf
+Kdlqr_simulink = Kdlqr
+
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
 % pause;
 
 %% 6. Addition of altitude overshot constraint (state x4)
 close all;
-x_min_simulink(4) = - x0(4) * overshot_fraction_h;
-x_max_simulink(4) = x0(4) * (1 + overshot_fraction_l);
+display('Starting simulation with constraints on input variable, pitch angle (x2) and altitude overshot (x4).')
+Q_simulink = Q
+S_simulink = S
+u_min_simulink = u_min
+u_max_simulink = u_max
+x_min_simulink =  [-inf, x2_min, -inf, - x0(4) * overshot_fraction_l]'
+x_max_simulink =  [+inf, x2_max, +inf, x0(4) * (1 + overshot_fraction_h)]'
+uslopemin_simulink = -inf
+uslopemax_simulink = inf
+Kdlqr_simulink = Kdlqr
+
+sim('MPC_vs_LQR');
+open('MPC_vs_LQR');
+% pause;
+
+%% 7. Addition of input slope constraint
+display('Starting simulation with constraints on input variable, pitch angle (x2) and altitude overshot (x4).')
+Q_simulink = Q
+S_simulink = S
+u_min_simulink = u_min
+u_max_simulink = u_max
+x_min_simulink =  [-inf, x2_min, -inf, - x0(4) * overshot_fraction_l]'
+x_max_simulink =  [+inf, x2_max, +inf, x0(4) * (1 + overshot_fraction_h)]'
+uslopemin_simulink = u_slew_rate_min
+uslopemax_simulink = u_slew_rate_max
+Kdlqr_simulink = Kdlqr
+
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
 % pause;
