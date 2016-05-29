@@ -1,4 +1,4 @@
-function [ u ] = MPC_controller( A, B, Q, R, S, N, umin, umax, xmin, xmax, x )
+function [ u ] = MPC_controller( sys, Q, R, S, N, umin, umax, uslope_min, uslope_max,  xmin, xmax, x, uprec )
 %MPC_CONTROLLER return the input as computed by an mpc aontroller
 %   Detailed explanation goes here
 
@@ -7,7 +7,7 @@ options = optimset(options, 'LargeScale', 'off', 'Display' , 'off');
 
 Ac = [];
 for i = 1:N
-    Ac = [Ac;A^i];
+    Ac = [Ac;sys.a^i];
 end
 
 Bc = [];
@@ -15,9 +15,9 @@ for i= 1:N
     line = [];
     for j = 1:N
         if(j>i)
-            el = zeros(size(B));
+            el = zeros(size(sys.b));
         else
-            el = A^(i-j) * B;
+            el = sys.a^(i-j) * sys.b;
         end
         line = [line el];
     end
@@ -34,13 +34,27 @@ f = 2 * x' * Ac' * Qc * Bc;
 umin_constr = umin * ones(N, 1);
 umax_constr = umax * ones(N, 1);
 
-[A_leq, b_leq] = build_inequality(Ac, Bc, N, xmin, xmax, x);
+[A_state, b_state] = build_state_contraint_matrix(Ac, Bc, N, xmin, xmax, x);
+[A_slope, b_slope] = build_slope_contraint_matrix(sys.Ts, N, uslope_min, uslope_max, uprec);
+A_leq = [A_state; A_slope];
+b_leq = [b_state; b_slope];
+[A_leq, b_leq] = remove_infinite_constraints(A_leq, b_leq);
 
-u = quadprog(H, f, A_leq, b_leq, [], [], umin_constr, umax_constr, [], options);
+[u, ~, flag] = quadprog(H, f, A_leq, b_leq, [], [], umin_constr, umax_constr, [], options);
+handle_error(flag);
 u = u(1);
 end
 
-function [A, b] = build_inequality(Ac, Bc, N, x_min, x_max, x)
+function handle_error(flag)
+if(flag == -3)
+    error('Unbounded optimisation problem. Execution aborted.');
+end
+if(flag == -2)
+    error('Infeasible optimisation problem. Execution aborted.');
+end
+end
+
+function [A, b] = build_state_contraint_matrix(Ac, Bc, N, x_min, x_max, x)
 x_max_vect = repmat(x_max, N, 1);
 A = Bc;
 b = x_max_vect - Ac * x;
@@ -48,8 +62,21 @@ b = x_max_vect - Ac * x;
 x_min_vect = repmat(x_min, N, 1);
 A = [A; -Bc];
 b = [b; - x_min_vect + Ac * x];
+end
 
+function [A, b] = build_slope_contraint_matrix(Ts, N, uslope_min, uslope_max, uprec)
+A_max = eye(N) + tril(-ones(N), -1) + tril(ones(N), -2);
+b_max = ones(N, 1) .* Ts .* uslope_max;
+b_max(1) = b_max(1) + uprec;
+
+b_min = - ones(N, 1) .* Ts .* uslope_min;
+b_min(1) = b_min(1) - uprec;
+
+A = [A_max; - A_max];
+b = [b_max; b_min];
+end
+
+function [A, b] = remove_infinite_constraints(A, b)
 A = A(b > -inf & b < inf, :);
 b = b(b > -inf & b < inf);
-
 end
