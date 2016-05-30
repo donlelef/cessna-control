@@ -86,30 +86,39 @@ sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
 % pause;
 
-%% 4a. MPC more aggressive (Q = 100I, S recomputed)
+%% 4a. MPC more aggressive (Q = diag([1, 1, 1, 1e5]), S recomputed)
 close all;
-Q_aggressive = 100 .* Q;
+display('Starting simulation with more aggressive control on x4: Q = diag([1, 1, 1, 1e5]), S recomputed.')
+Q_aggressive = diag([1, 1, 1, 1e5]);
 [Kdlqr_aggressive, S_aggressive, ~] = dlqr(sys_discrete.a, sys_discrete.b, Q_aggressive, R);
-Q_simulink = Q_aggressive;
-S_simulink = S_aggressive;
-Kdlqr_simulink = Kdlqr_aggressive;
+Q_simulink = Q_aggressive
+S_simulink = S_aggressive
+u_min_simulink = u_min
+u_max_simulink = u_max
+x_min_simulink =  [-inf, -inf, -inf, -inf]'
+x_max_simulink =  [+inf, +inf, +inf, +inf]'
+uslopemin_simulink = -inf
+uslopemax_simulink = inf
+Kdlqr_simulink = Kdlqr_aggressive
 
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
 % pause;
 
-%% 4b. MPC more aggressive (Q = 100 I, S computed with Q = I)
+%% 4b. MPC less aggressive (Q = 1e-5 I, S recomputed)
 close all;
-S_simulink = S;
-
-sim('MPC_vs_LQR');
-open('MPC_vs_LQR');
-% pause;
-
-%% 4c. MPC more aggressive (Q = I, S computed with Q = 100 I)
-close all;
-Q_simulink = Q;
-S_simulink = S_aggressive;
+display('Starting simulation where input is heavily penalised: Q = 1e5 * I, S recomputed.')
+Q_aggressive = 1e-5 .* eye(4);
+[Kdlqr_aggressive, S_aggressive, ~] = dlqr(sys_discrete.a, sys_discrete.b, Q_aggressive, R);
+Q_simulink = Q_aggressive
+S_simulink = S_aggressive
+u_min_simulink = u_min
+u_max_simulink = u_max
+x_min_simulink =  [-inf, -inf, -inf, -inf]'
+x_max_simulink =  [+inf, +inf, +inf, +inf]'
+uslopemin_simulink = -inf
+uslopemax_simulink = inf
+Kdlqr_simulink = Kdlqr_aggressive
 
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
