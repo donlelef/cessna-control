@@ -5,6 +5,10 @@ warning('off', 'all');
 clc;
 
 %% Model definition
+% x1: angle of attack
+% x2: pitch angle
+% x3: pitch rate
+% x4: altitude
 A = [-1.2822, 0, 0.98, 0; 0, 0, 1, 0; -5.4293, 0, -1.8366, 0; -128.2, 128.2, 0, 0];
 B = [-0.3; 0; -17; 0];
 C = [0, 1, 0, 0; 0, 0, 0, 1; -128.2, 128.2, 0, 0];
@@ -23,7 +27,7 @@ u_min = -0.262;
 u_max= 0.262;
 u_slew_rate_min = -0.524;
 u_slew_rate_max = 0.524;
-x2_min = -0.349; % Pitch angle
+x2_min = -0.349;
 x2_max = 0.349;
 overshot_fraction_h = 1e-1;
 overshot_fraction_l = 1e-1;
@@ -36,6 +40,8 @@ closeLoopMatrix = sys_discrete.a - sys_discrete.b * Kdlqr;
 display(['Closed loop matrix A-BK eignevalues = ' num2str(closeLoopEigs')]);
 if(abs(closeLoopEigs) < 1)
     display('Eigenvalues inside unit circle -> closed loop system is AS.')
+else
+    display('Eigenvalues outside unit circle -> error.')
 end
 
 %% 2. Controller tuning with simulink model
