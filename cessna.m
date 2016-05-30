@@ -29,8 +29,9 @@ u_slew_rate_min = -0.524;
 u_slew_rate_max = 0.524;
 x2_min = -0.349;
 x2_max = 0.349;
-overshot_fraction_h = 1e-1;
-overshot_fraction_l = 1e-1;
+overshot_fraction_h = 1e-2;
+overshot_fraction_l = 1e-2;
+add_on_fail = overshot_fraction_h * [0, 0, 0, 10]';
 
 %% 1. LQ controller
 Q = eye(4);
@@ -141,6 +142,23 @@ sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
 % pause;
 
+%% 5b Removing input contraint to let x2 saturate.
+close all;
+display('Starting simulation with constraints on input variable and pitch angle (x2), no input constraint.')
+Q_simulink = Q
+S_simulink = S
+u_min_simulink = -inf
+u_max_simulink = inf
+x_min_simulink =  [-inf, x2_min, -inf, -inf]'
+x_max_simulink =  [+inf, x2_max, +inf, +inf]'
+uslopemin_simulink = -inf
+uslopemax_simulink = inf
+Kdlqr_simulink = Kdlqr
+
+sim('MPC_vs_LQR');
+open('MPC_vs_LQR');
+% pause;
+
 %% 6. Addition of altitude overshot constraint (state x4)
 close all;
 display('Starting simulation with constraints on input variable, pitch angle (x2) and altitude overshot (x4).')
@@ -159,13 +177,13 @@ open('MPC_vs_LQR');
 % pause;
 
 %% 7. Addition of input slope constraint
-display('Starting simulation with constraints on input variable, pitch angle (x2) and altitude overshot (x4).')
+display('Starting simulation with constraints on input variable, pitch angle (x2), altitude overshot (x4) and input slew rate.')
 Q_simulink = Q
 S_simulink = S
 u_min_simulink = u_min
 u_max_simulink = u_max
-x_min_simulink =  [-inf, x2_min, -inf, - x0(4) * overshot_fraction_l]'
-x_max_simulink =  [+inf, x2_max, +inf, x0(4) * (1 + overshot_fraction_h)]'
+x_min_simulink =  [-inf, x2_min, -inf, -inf]'
+x_max_simulink =  [+inf, x2_max, +inf, inf]'
 uslopemin_simulink = u_slew_rate_min
 uslopemax_simulink = u_slew_rate_max
 Kdlqr_simulink = Kdlqr
