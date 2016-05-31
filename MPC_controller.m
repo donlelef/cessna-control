@@ -1,4 +1,4 @@
-function [ u ] = MPC_controller( sys, Q, R, S, N, umin, umax, uslope_min, uslope_max,  xmin, xmax, x, uprec, add_on_fail )
+function [ u ] = MPC_controller( sys, Q, R, S, N, umin, umax, uslope_min, uslope_max,  xmin, xmax, x, uprec)
 %MPC_CONTROLLER return the input as computed by an mpc aontroller
 %   Detailed explanation goes here
 
@@ -28,38 +28,33 @@ Qc = kron(eye(N-1), Q);
 Qc = blkdiag(Qc, S);
 
 Rc = kron(eye(N), R);
-
 H = 2 * Bc' * Qc * Bc + Rc;
+H = blkdiag(H, 0);
 f = 2 * x' * Ac' * Qc * Bc;
+f = [f 1e12];
 umin_constr = umin * ones(N, 1);
-umax_constr = umax * ones(N, 1);
+umin_constr = [umin_constr; 0];
 
-flag = -1;
-while flag < 0
-    [A_state, b_state] = build_state_contraint_matrix(Ac, Bc, N, xmin, xmax, x);
-    [A_slope, b_slope] = build_slope_contraint_matrix(sys.Ts, N, uslope_min, uslope_max, uprec);
-    A_leq = [A_state; A_slope];
-    b_leq = [b_state; b_slope];
-    [A_leq, b_leq] = remove_infinite_constraints(A_leq, b_leq);
-    
-    [u, ~, flag] = quadprog(H, f, A_leq, b_leq, [], [], umin_constr, umax_constr, [], options);
-    [xmin, xmax] = handle_error(flag, xmin, xmax, add_on_fail);
-end
+umax_constr = umax * ones(N, 1);
+umax_constr = [umax_constr; +inf];
+
+[A_state, b_state] = build_state_contraint_matrix(Ac, Bc, N, xmin, xmax, x);
+[A_slope, b_slope] = build_slope_contraint_matrix(sys.Ts, N, uslope_min, uslope_max, uprec);
+A_leq = [A_state; A_slope];
+b_leq = [b_state; b_slope];
+[A_leq, b_leq] = remove_infinite_constraints(A_leq, b_leq);
+
+[u, ~, flag] = quadprog(H, f, A_leq, b_leq, [], [], umin_constr, umax_constr, [], options);
+handle_error(flag);
 u = u(1);
 end
 
-function [xmin, xmax] = handle_error(flag, xminprec, xmaxprec, add_on_fail)
-xmin = xminprec;
-xmax = xmaxprec;
+function handle_error(flag)
 if(flag == -3)
-    warning('Unbounded optimisation problem. Execution aborted.');
-    xmax = xmaxprec + add_on_fail;
-    xmin = xminprec - add_on_fail;
+    error('Unbounded optimisation problem. Execution aborted.');
 end
 if(flag == -2)
-    warning('Infeasible optimisation problem. Execution aborted.');
-    xmax = xmaxprec + add_on_fail;
-    xmin = xminprec - add_on_fail;
+    error('Infeasible optimisation problem. Execution aborted.');
 end
 end
 
@@ -67,19 +62,22 @@ function [A, b] = build_state_contraint_matrix(Ac, Bc, N, x_min, x_max, x)
 x_max_vect = repmat(x_max, N, 1);
 A = Bc;
 b = x_max_vect - Ac * x;
+A = [A repmat([0 0 0 -1]', N, 1)];
 
 x_min_vect = repmat(x_min, N, 1);
-A = [A; -Bc];
+A = [A; -[Bc repmat([0 0 0 -1]', N, 1)]];
 b = [b; - x_min_vect + Ac * x];
 end
 
 function [A, b] = build_slope_contraint_matrix(Ts, N, uslope_min, uslope_max, uprec)
-A_max = eye(N) + tril(-ones(N), -1) + tril(ones(N), -2);
-b_max = ones(N, 1) .* Ts .* uslope_max;
+A_max = eye(N+1) + tril(-ones(N+1), -1) + tril(ones(N+1), -2);
+b_max = ones(N+1, 1) .* Ts .* uslope_max;
 b_max(1) = b_max(1) + uprec;
+b_max(N+1) = inf;
 
-b_min = - ones(N, 1) .* Ts .* uslope_min;
+b_min = - ones(N+1, 1) .* Ts .* uslope_min;
 b_min(1) = b_min(1) - uprec;
+b_min(N+1) = -inf;
 
 A = [A_max; - A_max];
 b = [b_max; b_min];
