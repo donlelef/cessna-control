@@ -9,6 +9,9 @@ clc;
 % x2: pitch angle
 % x3: pitch rate
 % x4: altitude
+% y1: putch angle
+% y2: altitude
+% y3: vertical speed
 A = [-1.2822, 0, 0.98, 0; 0, 0, 1, 0; -5.4293, 0, -1.8366, 0; -128.2, 128.2, 0, 0];
 B = [-0.3; 0; -17; 0];
 C = [0, 1, 0, 0; 0, 0, 0, 1; -128.2, 128.2, 0, 0];
