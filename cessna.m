@@ -38,11 +38,24 @@ overshot_fraction_l = 1e-2;
 %% Open Loop Analysis
 pzmap(sys_discrete);
 
+%% State observer
+if(rank(obsv(sys)) == 4)
+    display('The assumptions for the asymptotical stability of state observer are verified');
+end
+poles = [-1, -2, -3, -4];
+L = place(A', C', poles)';
+sys_observer = ss(A - L*C, [B, L], eye(4), zeros(4, 4));
+sys_observer_discrete = c2d(sys_observer, Ts);
+display(['Closed loop matrix A-LC eignevalues = ' num2str(eig(A - L*C)')]);
+if(all(abs(eig(sys_observer_discrete)) < 1))
+    display('Closed loop matrix A-LC is AS.');
+end
+
 %% 1. LQ controller
 display('1. LQ controller synthesis');
 close all;
 Q = eye(4)
-R = 1
+R = 10
 [Kdlqr, S, closeLoopEigs] = dlqr(sys_discrete.a, sys_discrete.b, Q, R);
 theorem = (rank(ctrb(sys_discrete)) == 4) && (all(eig(S)>0));
 if(theorem)
@@ -94,8 +107,8 @@ uslopemin_simulink = -inf
 uslopemax_simulink = inf
 Kdlqr_simulink = Kdlqr
 
-sim('MPC_vs_LQR');
-open('MPC_vs_LQR');
+% sim('MPC_vs_LQR');
+% open('MPC_vs_LQR');
 % pause;
 
 %% 4a. MPC more aggressive (Q = diag([1, 1, 1, 1e5]), S recomputed)
@@ -113,8 +126,8 @@ uslopemin_simulink = -inf
 uslopemax_simulink = inf
 Kdlqr_simulink = Kdlqr_aggressive
 
-sim('MPC_vs_LQR');
-open('MPC_vs_LQR');
+% sim('MPC_vs_LQR');
+% open('MPC_vs_LQR');
 % pause;
 
 %% 4b. MPC less aggressive (Q = 1e-5 I, S recomputed)
@@ -183,8 +196,8 @@ uslopemin_simulink = -inf
 uslopemax_simulink = inf
 Kdlqr_simulink = Kdlqr
 
-sim('MPC_vs_LQR');
-open('MPC_vs_LQR');
+% sim('MPC_vs_LQR');
+% open('MPC_vs_LQR');
 % pause;
 
 %% 7. Addition of input slope constraint
@@ -200,6 +213,6 @@ uslopemin_simulink = u_slew_rate_min
 uslopemax_simulink = u_slew_rate_max
 Kdlqr_simulink = Kdlqr
 
-sim('MPC_vs_LQR');
-open('MPC_vs_LQR');
+% sim('MPC_vs_LQR');
+% open('MPC_vs_LQR');
 % pause;

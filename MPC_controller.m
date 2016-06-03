@@ -4,7 +4,7 @@ function [ u ] = MPC_controller( sys, Q, R, S, N, umin, umax, uslope_min, uslope
 
 options = optimset('quadprog');
 options = optimset(options, 'LargeScale', 'off', 'Display' , 'off');
-rho = 100;
+rho = 10;
 
 Ac = [];
 for i = 1:N
