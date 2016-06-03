@@ -44,13 +44,8 @@ b_leq = [b_state; b_slope];
 [A_leq, b_leq] = remove_infinite_constraints(A_leq, b_leq);
 
 [u, cost, flag] = quadprog(H, f, A_leq, b_leq, [], [], umin_constr, umax_constr, [], options);
-cost = cost - u(11) * rho + x' * Ac' * Qc * Ac * x;
 handle_error(flag);
-if(cost < 0)
-    state = x
-    input = u(1:10)
-    slack = u(11)
-end
+cost = cost - u(11) * rho + x' * Ac' * Qc * Ac * x;
 u = [u(1), cost]';
 end
 
@@ -60,6 +55,9 @@ if(flag == -3)
 end
 if(flag == -2)
     error('Infeasible optimisation problem. Execution aborted.');
+end
+if(flag == 0)
+    error('Maximum number of iteration exceeded. Execution aborted.')
 end
 end
 

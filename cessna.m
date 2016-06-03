@@ -36,20 +36,24 @@ overshot_fraction_h = 1e-2;
 overshot_fraction_l = 1e-2;
 
 %% Open Loop Analysis
+if(rank(ctrb(sys_discrete)) == 4 && rank(ctrb(sys_discrete)) == 4)
+    display('Rank of controllability and observability matrix is 4 -> the system is controllable and observable');
+end
 pzmap(sys_discrete);
 
 %% State observer
 if(rank(obsv(sys)) == 4)
     display('The assumptions for the asymptotical stability of state observer are verified');
 end
-poles = [-1, -2, -3, -4];
+poles = [-1.1, -1.2, -1.3, -1.4];
 L = place(A', C', poles)';
 sys_observer = ss(A - L*C, [B, L], eye(4), zeros(4, 4));
 sys_observer_discrete = c2d(sys_observer, Ts);
-display(['Closed loop matrix A-LC eignevalues = ' num2str(eig(A - L*C)')]);
+display(['Closed loop matrix A-LC eignevalues = ' num2str(eig(sys_observer_discrete)')]);
 if(all(abs(eig(sys_observer_discrete)) < 1))
     display('Closed loop matrix A-LC is AS.');
 end
+pzmap(sys_observer_discrete);
 
 %% 1. LQ controller
 display('1. LQ controller synthesis');
@@ -72,6 +76,15 @@ end
 display('2. LQ controller simulation');
 u_min_simulink = -inf
 u_max_simulink = inf
+Kdlqr_simulink = Kdlqr
+sim('LQR_discrete');
+open('LQR_discrete');
+%pause;
+
+%% 2b. Adding input saturation to LQR regulator
+display('2. Adding input saturation to LQR regulator');
+u_min_simulink = u_min
+u_max_simulink = u_max
 Kdlqr_simulink = Kdlqr
 sim('LQR_discrete');
 open('LQR_discrete');
@@ -128,7 +141,7 @@ Kdlqr_simulink = Kdlqr_aggressive
 
 % sim('MPC_vs_LQR');
 % open('MPC_vs_LQR');
-% pause;
+% pause;[-1, -2, -3, -4];
 
 %% 4b. MPC less aggressive (Q = 1e-5 I, S recomputed)
 display('Simulation where input is heavily penalised: Q = 1e-5 * I, S recomputed.');
@@ -207,8 +220,8 @@ Q_simulink = Q
 S_simulink = S
 u_min_simulink = u_min
 u_max_simulink = u_max
-x_min_simulink =  [-inf, x2_min, -inf, - x0(4) * overshot_fraction_l]'
-x_max_simulink =  [+inf, x2_max, +inf, x0(4) * (1 + overshot_fraction_h)]'
+x_min_simulink =  [-inf, x2_min, -inf, - inf]'
+x_max_simulink =  [+inf, x2_max, +inf, inf]'
 uslopemin_simulink = u_slew_rate_min
 uslopemax_simulink = u_slew_rate_max
 Kdlqr_simulink = Kdlqr
