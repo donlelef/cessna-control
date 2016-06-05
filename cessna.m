@@ -2,7 +2,7 @@
 clear all;
 close all;
 warning('off', 'all');
-clc;
+clc
 
 %% Model definition
 % x1: angle of attack
@@ -32,8 +32,8 @@ u_slew_rate_min = -0.524;
 u_slew_rate_max = 0.524;
 x2_min = -0.349;
 x2_max = 0.349;
-overshot_fraction_h = 1e-2;
-overshot_fraction_l = 1e-2;
+overshot_fraction_h = 2e-2;
+overshot_fraction_l = 2e-2;
 
 %% Open Loop Analysis
 if(rank(ctrb(sys_discrete)) == 4 && rank(ctrb(sys_discrete)) == 4)
@@ -43,17 +43,17 @@ pzmap(sys_discrete);
 
 %% State observer
 if(rank(obsv(sys)) == 4)
-    display('The assumptions for the asymptotical stability of state observer are verified');
+    display('The assumptions for the a1symptotical stability of state observer are verified');
 end
-poles = [-1.1, -1.2, -1.3, -1.4];
-L = place(A', C', poles)';
-sys_observer = ss(A - L*C, [B, L], eye(4), zeros(4, 4));
-sys_observer_discrete = c2d(sys_observer, Ts);
-display(['Closed loop matrix A-LC eignevalues = ' num2str(eig(sys_observer_discrete)')]);
-if(all(abs(eig(sys_observer_discrete)) < 1))
+poles = [0.01, 0.012, 0.014, 0.016];
+L = place(sys_discrete.a', sys_discrete.c', poles)';
+sys_observer = ss(sys_discrete.a - L*sys_discrete.c, [sys_discrete.b, L], eye(4), zeros(4, 4), Ts);
+sys_observer_discrete = sys_observer;
+display(['Closed loop matrix A-LC eignevalues = ' num2str(eig(sys_observer)')]);
+if(all(abs(eig(sys_observer)) < 1))
     display('Closed loop matrix A-LC is AS.');
 end
-pzmap(sys_observer_discrete);
+pzmap(sys_observer);
 
 %% 1. LQ controller
 display('1. LQ controller synthesis');
@@ -79,7 +79,6 @@ u_max_simulink = inf
 Kdlqr_simulink = Kdlqr
 sim('LQR_discrete');
 open('LQR_discrete');
-%pause;
 
 %% 2b. Adding input saturation to LQR regulator
 display('2. Adding input saturation to LQR regulator');
@@ -88,11 +87,9 @@ u_max_simulink = u_max
 Kdlqr_simulink = Kdlqr
 sim('LQR_discrete');
 open('LQR_discrete');
-%pause;
 
 %% 3. MPC controller without active constraints
 display('3. MPC addition and simulation without constraints');
-close all;
 Q_simulink = Q
 S_simulink = S
 u_min_simulink = -inf
@@ -105,7 +102,6 @@ Kdlqr_simulink = Kdlqr
 
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
-% pause;
 
 %% 4. MPC controller with constraint on input variable
 display('4. Simulation with constraint on u');
@@ -120,14 +116,13 @@ uslopemin_simulink = -inf
 uslopemax_simulink = inf
 Kdlqr_simulink = Kdlqr
 
-% sim('MPC_vs_LQR');
-% open('MPC_vs_LQR');
-% pause;
+sim('MPC_vs_LQR');
+open('MPC_vs_LQR');
 
-%% 4a. MPC more aggressive (Q = diag([1, 1, 1, 1e5]), S recomputed)
-display('4a. Simulation with more aggressive control on x4: Q = diag([1, 1, 1, 1e5]), S recomputed.');
+%% 4a. MPC more aggressive (Q = diag([1, 1, 1, 100]), S recomputed)
+display('4a. Simulation with more aggressive control on x4: Q = diag([1, 1, 1, 100]), S recomputed.');
 close all;
-Q_aggressive = diag([1, 1, 1, 1e5]);
+Q_aggressive = diag([1, 1, 1, 10]);
 [Kdlqr_aggressive, S_aggressive, ~] = dlqr(sys_discrete.a, sys_discrete.b, Q_aggressive, R);
 Q_simulink = Q_aggressive
 S_simulink = S_aggressive
@@ -139,13 +134,11 @@ uslopemin_simulink = -inf
 uslopemax_simulink = inf
 Kdlqr_simulink = Kdlqr_aggressive
 
-% sim('MPC_vs_LQR');
-% open('MPC_vs_LQR');
-% pause;[-1, -2, -3, -4];
+sim('MPC_vs_LQR');
+open('MPC_vs_LQR');
 
 %% 4b. MPC less aggressive (Q = 1e-5 I, S recomputed)
 display('Simulation where input is heavily penalised: Q = 1e-5 * I, S recomputed.');
-close all;
 Q_aggressive = 1e-5 .* eye(4);
 [Kdlqr_aggressive, S_aggressive, ~] = dlqr(sys_discrete.a, sys_discrete.b, Q_aggressive, R);
 Q_simulink = Q_aggressive
@@ -160,11 +153,9 @@ Kdlqr_simulink = Kdlqr_aggressive
 
 sim('MPC_vs_LQR');
 open('MPC_vs_LQR');
-% pause;
 
 %% 5. Addition of pitch angle constraint (state x2)
 display('Addition of constraint on x2 within the MPC optimization')
-close all;
 Q_simulink = Q
 S_simulink = S
 u_min_simulink = u_min
@@ -175,13 +166,11 @@ uslopemin_simulink = -inf
 uslopemax_simulink = inf
 Kdlqr_simulink = Kdlqr
 
-sim('MPC_vs_LQR');
-open('MPC_vs_LQR');
-% pause;
+sim('Complete_schema');
+open('Complete_schema');
 
 %% 5a Removing input contraint to let x2 saturate.
 display('5a. Simulation with no constraint on u and constraints on x2')
-close all;
 Q_simulink = Q
 S_simulink = S
 u_min_simulink = -inf
@@ -192,13 +181,11 @@ uslopemin_simulink = -inf
 uslopemax_simulink = inf
 Kdlqr_simulink = Kdlqr
 
-sim('MPC_vs_LQR');
-open('MPC_vs_LQR');
-% pause;
+sim('Complete_schema');
+open('Complete_schema');
 
 %% 6. Addition of altitude overshot constraint (state x4)
 display('6. Simulation with constraints on u, x2, and x4 overshot');
-close all;
 Q_simulink = Q
 S_simulink = S
 u_min_simulink = u_min
@@ -209,13 +196,11 @@ uslopemin_simulink = -inf
 uslopemax_simulink = inf
 Kdlqr_simulink = Kdlqr
 
-% sim('MPC_vs_LQR');
-% open('MPC_vs_LQR');
-% pause;
+sim('Complete_schema');
+open('Complete_schema');
 
 %% 7. Addition of input slope constraint
 display('Simulation with constraints on u, x2, x4 overshot and u slew rate')
-close all;
 Q_simulink = Q
 S_simulink = S
 u_min_simulink = u_min
@@ -226,6 +211,5 @@ uslopemin_simulink = u_slew_rate_min
 uslopemax_simulink = u_slew_rate_max
 Kdlqr_simulink = Kdlqr
 
-% sim('MPC_vs_LQR');
-% open('MPC_vs_LQR');
-% pause;
+sim('Complete_schema');
+open('Complete_schema');
